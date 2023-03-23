@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>User Administration</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="/static/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <div class="container mt-3">
+      <h1>User Administration</h1>
+      <form action="/register" method="post" class="mt-3">
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input
+            type="text"
+            name="username"
+            id="username"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="form-group form-check">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            name="is_admin"
+            id="is_admin"
+          />
+          <label class="form-check-label" for="is_admin"
+            >Create Admin User</label
+          >
+        </div>
+        <button type="submit" class="btn btn-primary">Create User</button>
+      </form>
+    </div>
+  </body>
+</html>
