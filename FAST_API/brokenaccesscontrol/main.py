@@ -19,7 +19,8 @@ c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         username TEXT NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        is_admin INTEGER NOT NULL DEFAULT 0
     )
 """)
 conn.commit()
@@ -44,10 +45,14 @@ async def login(request: Request, username: str = Form(...), password: str = For
 
     # If a matching user is found, redirect to the home page
     if user:
-        return templates.TemplateResponse("success.html", {"request": request, "username": username})
+        return templates.TemplateResponse("home.html", {"request": request, "username": username})
     # If a matching user is not found, display an error message
     else:
-        return templates.TemplateResponse("index.html", {"request": request, "error": "Invalid username or password"})
+        return templates.TemplateResponse("failure.html", {"request": request, "error": "Invalid username or password"})
+
+@app.get("/home", response_class=HTMLResponse)
+async def resetpage(request: Request):
+    return templates.TemplateResponse("home.html",{"request":request})
 
 # Define a route to display the user administration page
 @app.get("/admin", response_class=HTMLResponse)
@@ -66,10 +71,10 @@ async def admin(request: Request):
 
 # Define a route to handle user creation
 @app.post("/admin/create",response_class=HTMLResponse)
-async def create_user(request: Request, username: str = Form(...), password: str = Form(...)):
+async def create_user(request: Request, username: str = Form(...), password: str = Form(...), is_admin: int = Form(...)):
     # Insert the new user into the database
     c = conn.cursor()
-    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+    c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, password, is_admin))
     conn.commit()
     c.close()
 
