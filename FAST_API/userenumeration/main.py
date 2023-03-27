@@ -36,7 +36,7 @@ conn.commit()
 c.close()
 
 
-#Defice middleware
+#Define middleware
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
 # Define a function to verify user credentials

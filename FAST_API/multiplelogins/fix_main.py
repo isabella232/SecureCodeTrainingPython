@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 import sqlite3
+import uuid
 
 
 # assign templates
@@ -13,9 +14,8 @@ templates = Jinja2Templates(directory="templates")
 app = FastAPI()
 
 # Create SQLITE db
-conn = sqlite3.connect("fix_database.db", check_same_thread=False)
+conn = sqlite3.connect("database.db", check_same_thread=False)
 
-# Create tables and default credentials
 c = conn.cursor()
 c.execute(
     """
@@ -32,6 +32,9 @@ c.execute("""INSERT OR IGNORE INTO users(username, password, is_admin) VALUES ("
 conn.commit()
 c.close()
 
+# Define a dictionary to map usernames to session IDs
+user_sessions = {}
+
 #Define middleware
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
@@ -47,7 +50,8 @@ def verify_user(username: str, password: str):
 # Define a dependency to get the current user from the session
 def get_current_user(request: Request):
     username = request.session.get("username")
-    if not username:
+    session_id = request.session.get("session_id")
+    if not username or not session_id or session_id != user_sessions.get(username):
         raise HTTPException(status_code=401, detail="Not authenticated")
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username = ?", (username,))
@@ -79,13 +83,18 @@ async def read_form(request: Request):
 # Define a route to handle form submission
 @app.post("/login")
 async def login(request: Request,  username: str = Form(...), password: str = Form(...)):
-    user = verify_user(username, password)
-    if user:
-        request.session["username"] = user[1]
-        request.session["admin"]=user[3]
-        return templates.TemplateResponse("home.html", {"request":request, "id": user[1], "admin": user[3]})
+    if verify_user(username, password):
+        # Generate a new session ID and store it in the user_sessions dictionary
+        session_id = str(uuid.uuid4())
+        user_sessions[username] = session_id
+        # Set the session variables
+        request.session["username"] = username
+        request.session["session_id"] = session_id
+
+        return templates.TemplateResponse("home.html", {"request":request, "id": username, "session_id": session_id})
     else:
         return templates.TemplateResponse("failure.html", {"request": request, "error": "Invalid username or password"})
+
 
 @app.get("/register", response_class=HTMLResponse)
 async def read_form(request: Request):
@@ -115,27 +124,12 @@ async def resetpage(request: Request):
     return templates.TemplateResponse("home.html",{"request":request})
 
 @app.post("/resetpassword", response_class=HTMLResponse)
-async def resetpassword(request: Request, username: str = Form(...), oldpassword: str = Form(...), newpassword: str = Form(...), user=Depends(get_current_user)):
-    # Retrieve the user's record from the database
+async def resetpassword(request: Request, username: str = Form(...), oldpassword: str = Form(...), newpassword: str = Form(...)):
     c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = ?", (username,))
-    db_user = c.fetchone()
-    c.close()
-
-    # Verify the old password
-    if db_user: 
-        if db_user[2] == oldpassword:
-        # Update the password
-            c = conn.cursor()
-            c.execute("UPDATE users SET password = ? WHERE username = ?", (newpassword, username))
-            conn.commit()
-            c.close()
-            return templates.TemplateResponse("reset_success.html", {"request": request})
-        else:
-            return templates.TemplateResponse("reset_failure.html", {"request": request, "error": "Invalid Old password"})
-    else:
-        return templates.TemplateResponse("reset_failure.html", {"request": request, "error": "Invalid Username"})
-
+    c.execute("UPDATE users SET password = ? WHERE id = ? ",(newpassword, username))
+    conn.commit()
+    c. close()
+    return templates.TemplateResponse("reset_success.html", {"request": request})
 
 
 # Define a route to display the user administration page
