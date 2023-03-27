@@ -29,14 +29,14 @@ c.execute(
     """
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
-        username TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         is_admin INTEGER NOT NULL DEFAULT 0
     )
     """
 )
-c.execute('INSERT INTO users(username, password, is_admin) VALUES ("user",?,0)',(hashed_user_password,))
-c.execute('INSERT INTO users(username, password, is_admin) VALUES ("admin",?,1)', (hashed_admin_password,))
+c.execute('INSERT OR IGNORE INTO users(username, password, is_admin) VALUES ("user",?,0)',(hashed_user_password,))
+c.execute('INSERT OR IGNORE INTO users(username, password, is_admin) VALUES ("admin",?,1)', (hashed_admin_password,))
 conn.commit()
 c.close()
 

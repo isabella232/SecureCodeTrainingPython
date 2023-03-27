@@ -17,20 +17,21 @@ app = FastAPI()
 # Create SQLITE db
 conn = sqlite3.connect("database.db", check_same_thread=False)
 
+
 # Create tables and default credentials
 c = conn.cursor()
 c.execute(
     """
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
-        username TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         is_admin INTEGER NOT NULL DEFAULT 0
     )
     """
 )
-c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("user","user",0)""")
-c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("admin","admin",1)""")
+c.execute("""INSERT OR IGNORE INTO users(username, password, is_admin) VALUES ("user","user",0)""")
+c.execute("""INSERT OR IGNORE INTO users(username, password, is_admin) VALUES ("admin","admin",1)""")
 conn.commit()
 c.close()
 
