@@ -24,7 +24,7 @@ def root():
     table ="""CREATE TABLE IF NOT EXISTS employee(ID INTEGER PRIMARY KEY AUTOINCREMENT,EMAIL VARCHAR(255));"""
     cursor.execute(table)
 
-    cursor.execute('''INSERT INTO employee VALUES (1, 'morley@gmail.com')''')
+    cursor.execute('''INSERT INTO employee VALUES (1, 'test@test.com')''')
 
     
     conn.commit()

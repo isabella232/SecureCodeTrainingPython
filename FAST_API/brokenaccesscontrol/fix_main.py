@@ -120,7 +120,10 @@ async def admin(request: Request, user=Depends(get_current_user)):
 
 # Define a route to handle user creation
 @app.post("/admin/create",response_class=HTMLResponse)
-async def create_user(request: Request, username: str = Form(...), password: str = Form(...), is_admin: str = Form(...)):
+async def create_user(request: Request, username: str = Form(...), password: str = Form(...), is_admin: str = Form(...), user=Depends(get_current_user)):
+    # Check if the user is an admin
+    if not is_admin(user[1]):
+        raise HTTPException(status_code=403, detail="Forbidden")
     # Insert the new user into the database
     c = conn.cursor()
     c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, password, is_admin))
@@ -133,12 +136,14 @@ async def create_user(request: Request, username: str = Form(...), password: str
 
 # Define a route to handle user deletion
 @app.post("/admin/delete",response_class=HTMLResponse)
-async def delete_user(request: Request, id: int= Form(...)):
+async def delete_user(request: Request, id: int= Form(...), user=Depends(get_current_user)):
+    # Check if the user is an admin
+    if not is_admin(user[1]):
+        raise HTTPException(status_code=403, detail="Forbidden")
     # Delete the user from the database
     c = conn.cursor()
     c.execute("DELETE FROM users WHERE id = ?", (id,))
     conn.commit()
     c.close()
-
     # Redirect the user back to the user administration page
     return templates.TemplateResponse("delete_user.html", {"request": request, "id": id})
