@@ -18,7 +18,12 @@ app = FastAPI()
 # Create SQLITE db
 conn = sqlite3.connect("fix_database.db", check_same_thread=False)
 
+# Define password context with bcrypt algorithm
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 # Create tables and default credentials
+hashed_admin_password = pwd_context.hash("admin")
+hashed_user_password =pwd_context.hash("user")
 c = conn.cursor()
 c.execute(
     """
@@ -30,13 +35,11 @@ c.execute(
     )
     """
 )
-c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("user","user",0)""")
-c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("admin","admin",1)""")
+c.execute('INSERT INTO users(username, password, is_admin) VALUES ("user",?,0)',(hashed_user_password,))
+c.execute('INSERT INTO users(username, password, is_admin) VALUES ("admin",?,1)', (hashed_admin_password,))
 conn.commit()
 c.close()
 
-# Define password context with bcrypt algorithm
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #Defice middleware
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
