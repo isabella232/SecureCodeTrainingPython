@@ -51,8 +51,11 @@ def verify_user(username: str, password: str):
 def get_current_user(request: Request):
     username = request.session.get("username")
     session_id = request.session.get("session_id")
-    if not username or not session_id or session_id != user_sessions.get(username):
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    #Checking if the sesion has been revoked
+    if not username:
+        if not session_id:
+            if session_id != user_sessions.get(username):
+                raise HTTPException(status_code=401, detail="Not authenticated")
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username = ?", (username,))
     user = c.fetchone()
