@@ -17,7 +17,7 @@ app = FastAPI()
 # Create SQLITE db
 conn = sqlite3.connect("database.db", check_same_thread=False)
 
-# Create tables
+# Create tables and default credentials
 c = conn.cursor()
 c.execute(
     """
@@ -29,6 +29,8 @@ c.execute(
     )
     """
 )
+c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("user","user",0)""")
+c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("admin","admin",1)""")
 conn.commit()
 c.close()
 
@@ -149,7 +151,7 @@ async def create_user(request: Request, username: str = Form(...), password: str
     id= c.fetchone()
     c.close()
     # Redirect the user back to the user administration page
-    return templates.TemplateResponse("create_user.html", {"request": request, "id": id})
+    return templates.TemplateResponse("create_user.html", {"request": request, "id": id, "username": username})
 
 # Define a route to handle user deletion
 @app.post("/admin/delete",response_class=HTMLResponse)
@@ -161,4 +163,4 @@ async def delete_user(request: Request, id: int= Form(...)):
     c.close()
 
     # Redirect the user back to the user administration page
-    return templates.TemplateResponse("delete_user.html", {"request": request})
+    return templates.TemplateResponse("delete_user.html", {"request": request, "id": id})

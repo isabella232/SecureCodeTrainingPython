@@ -30,7 +30,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/jay/vertex/SecureCodeTrainingPython/FAST_API/improperauthentication/env"
+set -gx VIRTUAL_ENV "/home/jay/vertex/SecureCodeTrainingPython/FAST_API/hashing/env"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

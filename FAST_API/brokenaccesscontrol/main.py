@@ -91,4 +91,4 @@ async def delete_user(request: Request, id: int= Form(...)):
     c.close()
 
     # Redirect the user back to the user administration page
-    return templates.TemplateResponse("delete_user.html", {"request": request})
+    return templates.TemplateResponse("delete_user.html", {"request": request, "id": id})

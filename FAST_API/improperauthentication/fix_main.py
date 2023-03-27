@@ -6,8 +6,6 @@ from starlette.middleware.sessions import SessionMiddleware
 import sqlite3
 
 
-
-
 # assign templates
 templates = Jinja2Templates(directory="templates")
 
@@ -33,7 +31,6 @@ c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("user","use
 c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("admin","admin",1)""")
 conn.commit()
 c.close()
-
 
 #Defice middleware
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
@@ -85,7 +82,8 @@ async def login(request: Request,  username: str = Form(...), password: str = Fo
     user = verify_user(username, password)
     if user:
         request.session["username"] = user[1]
-        return templates.TemplateResponse("success.html", {"request":request, "id": user[1]})
+        request.session["admin"]=user[3]
+        return templates.TemplateResponse("home.html", {"request":request, "id": user[1], "admin": user[3]})
     else:
         return templates.TemplateResponse("failure.html", {"request": request, "error": "Invalid username or password"})
 
@@ -102,7 +100,28 @@ async def create_user(request: Request, username: str = Form(...), password: str
     c.close()
 
     # Redirect the user back to the user administration page
+    return templates.TemplateResponse("register_success.html", {"request": request})
+
+@app.get("/logout", response_class= HTMLResponse)
+async def logout(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/resetpassword", response_class=HTMLResponse)
+async def resetpage(request: Request):
+    return templates.TemplateResponse("resetpassword.html",{"request":request})
+
+@app.get("/home", response_class=HTMLResponse)
+async def resetpage(request: Request):
+    return templates.TemplateResponse("home.html",{"request":request})
+
+@app.post("/resetpassword", response_class=HTMLResponse)
+async def resetpassword(request: Request, username: str = Form(...), oldpassword: str = Form(...), newpassword: str = Form(...)):
+    
+    c = conn.cursor()
+    c.execute("UPDATE users SET password = ? WHERE id = ? ",(newpassword, username))
+    conn.commit()
+    c. close()
+    return templates.TemplateResponse("reset_success.html", {"request": request})
 
 
 # Define a route to display the user administration page

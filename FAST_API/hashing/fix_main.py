@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from passlib.context import CryptContext
 import sqlite3
 
 
@@ -34,19 +35,22 @@ c.execute("""INSERT INTO users(username, password, is_admin) VALUES ("admin","ad
 conn.commit()
 c.close()
 
+# Define password context with bcrypt algorithm
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #Defice middleware
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
+
 # Define a function to verify user credentials
 def verify_user(username: str, password: str):
     c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username,password,))
+    c.execute("SELECT * FROM users WHERE username = ?", (username,))
     user = c.fetchone()
     c.close()
-    if user:
+    if user and pwd_context.verify(password, user[2]):
         return user
-
+    
 # Define a dependency to get the current user from the session
 def get_current_user(request: Request):
     username = request.session.get("username")
@@ -85,7 +89,8 @@ async def login(request: Request,  username: str = Form(...), password: str = Fo
     user = verify_user(username, password)
     if user:
         request.session["username"] = user[1]
-        return templates.TemplateResponse("success.html", {"request":request, "id": user[1]})
+        request.session["admin"]=user[3]
+        return templates.TemplateResponse("home.html", {"request":request, "id": user[1], "admin": user[3]})
     else:
         return templates.TemplateResponse("failure.html", {"request": request, "error": "Invalid username or password"})
 
@@ -95,14 +100,35 @@ async def read_form(request: Request):
 
 @app.post("/register",response_class=HTMLResponse)
 async def create_user(request: Request, username: str = Form(...), password: str = Form(...), is_admin: str = Form(...)):
+    hashed_password = pwd_context.hash(password)
     # Insert the new user into the database
     c = conn.cursor()
-    c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, password, is_admin))
+    c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_password, is_admin))
     conn.commit()
     c.close()
 
     # Redirect the user back to the user administration page
+    return templates.TemplateResponse("register_success.html", {"request": request})
+
+@app.get("/logout", response_class= HTMLResponse)
+async def logout(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/resetpassword", response_class=HTMLResponse)
+async def resetpage(request: Request):
+    return templates.TemplateResponse("resetpassword.html",{"request":request})
+
+@app.get("/home", response_class=HTMLResponse)
+async def resetpage(request: Request):
+    return templates.TemplateResponse("home.html",{"request":request})
+
+@app.post("/resetpassword", response_class=HTMLResponse)
+async def resetpassword(request: Request, username: str = Form(...), oldpassword: str = Form(...), newpassword: str = Form(...)):
+    c = conn.cursor()
+    c.execute("UPDATE users SET password = ? WHERE id = ? ",(newpassword, username))
+    conn.commit()
+    c.close()
+    return templates.TemplateResponse("reset_success.html", {"request": request})
 
 
 # Define a route to display the user administration page
@@ -122,9 +148,10 @@ async def admin(request: Request, user=Depends(get_current_user)):
 # Define a route to handle user creation
 @app.post("/admin/create",response_class=HTMLResponse)
 async def create_user(request: Request, username: str = Form(...), password: str = Form(...), is_admin: str = Form(...)):
+    hashed_password = pwd_context.hash(password)
     # Insert the new user into the database
     c = conn.cursor()
-    c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, password, is_admin))
+    c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_password, is_admin))
     conn.commit()
     c.execute("SELECT id from users WHERE username=?", (username,))
     id= c.fetchone()
