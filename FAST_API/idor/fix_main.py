@@ -4,8 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import File, UploadFile
 from fastapi.staticfiles import StaticFiles
-import os
-import mimetypes
+import uuid
 import sqlite3
 
 # Initialize app
@@ -18,49 +17,50 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
 def root():
+    conn = sqlite3.connect('tutorial.db')
+    cursor = conn.cursor()
+    cursor.execute("""ALTER TABLE image 
+    ADD COLUMN uuid [VARCHAR];""")
+
     return "Upload Vulnerability"
 
 
 
 @app.post("/upload")
-def upload(file: UploadFile = File(...)):
-    allowwed_mime_type = "text/plain"
-
+def upload(uploadfile: UploadFile = File(...)):
     try:
-        if file.content_type == allowwed_mime_type:
-            contents = file.file.read()
-        
-            with open(file.filename, 'wb') as f:
-                f.write(contents)
-        else:
-            return 'Invalid File Type, Only accept txt file'
+        contents = uploadfile.file.read()
+        fileguid = str(uuid.uuid4())
+        with open(uploadfile.filename, 'wb') as f:
+            f.write(contents)
+
+        conn = sqlite3.connect('tutorial.db')
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO image( uuid, name, user) VALUES(?,?,?)", (fileguid,uploadfile.filename, 1,))
+        conn.commit()
     
     except Exception:
         return {"message": "There was an error uploading the file"}
     finally:
-        file.file.close()
+        uploadfile.file.close()
 
-    return {"message": f"Successfully uploaded {file.filename}"}
+    return {"message": f"Successfully uploaded {uploadfile.filename} with uuid {fileguid}"}
 
 @app.get("/upload", response_class=HTMLResponse)
 async def read(request: Request):
     
     return templates.TemplateResponse("upload.html", {"request": request})  
 
-@app.get("/file/{id}")
-def read_todo(id ):
+@app.get("/file/{user_id}/{id}")
+def read_todo(user_id: int, id: str):
 
     conn = sqlite3.connect('tutorial.db')
     cursor = conn.cursor()
 
-    #raw_sql = "SELECT * FROM todos WHERE user_id = "+user_id+" AND id = "+id
-
-    query = """SELECT * FROM todos WHERE user_id = ? AND  id = ?"""
+    query = """SELECT * FROM image WHERE user = ? AND  uuid = ?"""
     tuple1 = (user_id, id)
-    todo = cursor.execute(query, tuple1).fetchmany()
+    file = cursor.execute(query, tuple1).fetchmany()
 
-    #todo = cursor.execute(raw_sql).fetchmany()
-
-    return f"task: {todo}"  
+    return f"image:{file}"  
 
 

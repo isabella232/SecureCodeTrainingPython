@@ -11,5 +11,5 @@ Base = declarative_base()
 class ToDo(Base):
     __tablename__ = 'todos'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
+    user = Column(Integer)
     task = Column(String())
