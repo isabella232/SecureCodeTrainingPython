@@ -20,14 +20,19 @@ templates = Jinja2Templates(directory="templates")
 def root():
     return "Upload Vulnerability"
 
+@app.get("/upload", response_class=HTMLResponse)
+async def read(request: Request):
+    
+    return templates.TemplateResponse("upload.html", {"request": request})    
 
 
 @app.post("/upload")
 def upload(file: UploadFile = File(...)):
-    allowwed_mime_type = "text/plain"
+    allowed_mime_type = "text/plain"
 
     try:
-        if file.content_type == allowwed_mime_type:
+        mime_type = mimetypes.guess_type(file.filename)[0]
+        if mime_type == allowed_mime_type:
             contents = file.file.read()
         
             with open(file.filename, 'wb') as f:
@@ -41,10 +46,3 @@ def upload(file: UploadFile = File(...)):
         file.file.close()
 
     return {"message": f"Successfully uploaded {file.filename}"}
-
-@app.get("/upload", response_class=HTMLResponse)
-async def read(request: Request):
-    
-    return templates.TemplateResponse("upload.html", {"request": request})    
-
-
